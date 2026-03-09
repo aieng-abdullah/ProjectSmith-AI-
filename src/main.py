@@ -1,3 +1,11 @@
+"""
+CLI entry point for ProjectSmith-AI.
+
+This file allows you to run the chatbot directly from the command line.
+It uses the Chatbot class from chatbot/app.py and streams responses
+to the terminal.
+"""
+
 from llms.model import LLMService 
 
 import streamlit as st
