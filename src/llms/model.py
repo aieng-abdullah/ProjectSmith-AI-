@@ -1,3 +1,21 @@
+"""
+LLM Service Module
+
+This module provides a service layer for interacting with Groq-hosted
+language models through LangChain. It handles:
+
+- Prompt selection
+- LLM initialization
+- Response streaming
+- Output parsing
+
+The service builds a LangChain pipeline composed of:
+PromptTemplate -> LLM -> OutputParser
+"""
+
+
+
+
 import logging
 from typing import Optional, List
 from langchain_groq import ChatGroq

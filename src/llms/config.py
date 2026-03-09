@@ -1,3 +1,14 @@
+"""
+Application configuration module.
+
+This module loads environment variables and exposes a strongly-typed
+configuration object used across the application. Configuration values
+are loaded from the system environment or a `.env` file using python-dotenv.
+
+The module also configures global logging behavior.
+"""
+
+
 import os
 import logging
 from dataclasses import dataclass
