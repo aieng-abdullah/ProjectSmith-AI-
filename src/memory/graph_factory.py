@@ -13,26 +13,21 @@ def create_chat_graph(llm_service: LLMService, memory):
     """Build LangGraph chat graph with structured memory."""
     
     def chat_node(state: MessagesState):
-
         last_message = state["messages"][-1]
         user_input = last_message.content
-
+        
+        # Extract facts
         memory.extract_facts(user_input)
-
-        facts_text = " | ".join(
-            f"{k}: {v}" for k, v in memory.facts.items()
-        )
-
-        prompt = f"{facts_text}\n{user_input}"
-
-        response_text = "".join(
-             chunk for chunk in llm_service.generate(prompt)
-                )
-
-        return {
-
-         "messages": state["messages"] + [AIMessage(content=response_text)]
-         }       
+        
+        # Only prepend facts, let checkpointer handle message history
+        facts_text = memory.get_facts_text()
+        prompt = f"{facts_text}\n{user_input}" if facts_text else user_input
+        
+        # Generate response
+        response_text = "".join(chunk for chunk in llm_service.generate(prompt))
+        
+        # Return only AI message - checkpointer handles the rest
+        return {"messages": [AIMessage(content=response_text)]}
 
     builder = StateGraph(MessagesState)
     builder.add_node("chat", chat_node)
