@@ -1,39 +1,82 @@
-from llms.model import LLMService
-from memory.short_memory import ShortTermMemory
-from memory.graph_factory import create_chat_graph
+import logging
+import uuid
 from langchain_core.messages import HumanMessage
+from agents.graph import graph
 
-def main():
+logging.basicConfig(level=logging.WARNING)
 
-    persona = input("Choose persona (bp / psycho / eninner): ")
+VALID_PERSONAS = ["bp", "engineer", "psycho"]
 
-    llm = LLMService(prompt_type=persona)
 
-    memory = ShortTermMemory()
-    memory.set_thread("session1")
+def pick_persona() -> str:
+    print("\nPersonas: bp | engineer | psycho")
+    while True:
+        choice = input("Pick persona: ").strip().lower()
+        if choice in VALID_PERSONAS:
+            return choice
+        print(f"Choose from: {VALID_PERSONAS}")
 
-    chat_graph = create_chat_graph(llm, memory)
 
-    print("\n=== Chatbot Started ===\n")
+def run():
+    persona  = pick_persona()
+    user_id  = input("Username: ").strip() or "default_user"
+
+    # new session by default
+    thread_id = str(uuid.uuid4())
+    config    = {"configurable": {"thread_id": thread_id}}
+
+    print(f"\n[{persona}] Session: {thread_id}")
+    print("Commands: 'new' | 'resume <id>' | 'quit'\n")
 
     while True:
-
-        user_input = input("You: ")
-
-        if user_input.lower() in {"exit", "quit"}:
+        try:
+            user_input = input("You: ").strip()
+        except KeyboardInterrupt:
+            print("\nBye.")
             break
 
-        result = chat_graph.invoke(
-            {"messages": [HumanMessage(content=user_input)]},
-            memory.config
-        )
+        if not user_input:
+            continue
 
-        ai_message = result["messages"][-1]
+        if user_input.lower() in ("quit", "exit"):
+            print("Bye.")
+            break
 
-        print("AI:", ai_message.content)
+        # fresh session — new thread_id = fresh memory
+        if user_input.lower() == "new":
+            thread_id = str(uuid.uuid4())
+            config    = {"configurable": {"thread_id": thread_id}}
+            print(f"[New session: {thread_id}]\n")
+            continue
+
+        # resume old session — paste a previous thread_id
+        if user_input.lower().startswith("resume "):
+            thread_id = user_input.split(" ", 1)[1].strip()
+            config    = {"configurable": {"thread_id": thread_id}}
+            print(f"[Resumed: {thread_id}]\n")
+            continue
+
+        print("Assistant: ", end="", flush=True)
+
+        try:
+            graph.invoke(
+                {
+                    "user_input":        user_input,
+                    "persona":           persona,
+                    "retrieved_context": "",
+                    "user_id":           user_id,
+                    "ltm_context":       "",
+                    "messages":          [HumanMessage(content=user_input)],
+                    "plan":              [],
+                    "route":             "",
+                },
+                config=config,
+            )
+        except Exception as e:
+            print(f"\n[Error: {e}]")
+
+        print()
 
 
-
-
-
-main()
+if __name__ == "__main__":
+    run()

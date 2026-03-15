@@ -23,18 +23,25 @@ class Settings:
     MODEL_NAME: str
     TEMPERATURE: float
     STREAMING:bool
+    POSTGRES_URL : str
 
     @staticmethod
     def load() -> "Settings":
         groq_api_key = os.getenv("GROQ_API_KEY")
         if not groq_api_key:
             raise ValueError("GROQ_API_KEY is missing in environment variables.")
+        
+        
+        postgres_url = os.getenv("POSTGRES_URL")
+        if not postgres_url:
+            raise ValueError("POSTGRES_URL is missing in environment variables.")
 
         return Settings(
             GROQ_API_KEY=groq_api_key,
             MODEL_NAME=os.getenv("MODEL_NAME", "openai/gpt-oss-120b"),
             TEMPERATURE=float(os.getenv("TEMPERATURE", 0.7)),
             STREAMING=os.getenv("STREAMING", "true").lower() == "true",
+            POSTGRES_URL=postgres_url,
         )
 
 

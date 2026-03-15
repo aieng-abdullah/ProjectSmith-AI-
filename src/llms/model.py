@@ -47,6 +47,8 @@ from langchain_core.output_parsers import StrOutputParser
 from llms.config import settings
 
 from llms.prompts import balckpill_prompt ,engineer_prompt, psycho_prompt
+from agents.state import AgentState
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 
 
@@ -130,89 +132,46 @@ class LLMService:
 
 
 
-    def get_prompt(self, prompt_type:str):
+    def get_prompt(self, prompt_type: str):
+        templates = {
+        "bp":       balckpill_prompt,
+        "engineer": engineer_prompt,
+        "psycho":   psycho_prompt,
+         }
 
-        if prompt_type == "bp":
+        if prompt_type not in templates:
+            raise ValueError(f"Invalid prompt type: '{prompt_type}'")
 
-            return ChatPromptTemplate.from_messages([
-
-            ("system", balckpill_prompt),
-
-            ("human", "{input}")
-
-        ])
-
-
-
-
-
-        elif prompt_type == "eninner":
-
-            return ChatPromptTemplate.from_messages([
-
-            ("system", engineer_prompt),
-
-            ("human", "{input}")
-
-        ])
-
-
-
-        elif prompt_type=="psycho":
-
-             return ChatPromptTemplate.from_messages([
-
-            ("system", psycho_prompt),
-
-            ("human", "{input}")
-
-        ])
-
-            
-
-        else:
-
-            raise ValueError("invalid prompt")
-
-        
-
-
-
-
-
-    
+        return ChatPromptTemplate.from_messages([
+        ("system", templates[prompt_type]),
+        MessagesPlaceholder(variable_name="messages"),
+        ("human", "{input}"),
+       ])
+ 
 
     #responce genarating function
 
-    def generate(self, user_input: str) :
+    def generate(self, state: AgentState):
+        try:
+            user_input = state["user_input"]
+            messages = state.get("messages", [])
+            retrieved_context = state.get("retrieved_context", "")
 
         
+            payload = {
+                "input": user_input,
+                "messages": state.get("messages", []),       
+            
+            }
 
-        try:
-
-            for chunk in self.chain.stream({"input":user_input}):
-
+            for chunk in self.chain.stream(payload):
                 if chunk:
-
                     yield chunk
 
-                    
-
-
-
-
-
+        except KeyError as e:
+            logger.error(f"Missing key in state: {e}")
+            yield f"\n[Error: Missing state key {e}]"
+            
         except Exception as e:
-
-            logger.exception("streaming faild...")
-
+            logger.exception("Streaming failed")
             yield "\n[Error: Model response interrupted.]"
-
-        
-
-
-
-
-
-
-
