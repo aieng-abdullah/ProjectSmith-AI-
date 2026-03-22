@@ -1,38 +1,43 @@
-from langchain_core.messages import HumanMessage, AIMessage
+import logging
+from langchain_core.messages import AIMessage
+from langchain_core.runnables import RunnableConfig
 from agents.state import AgentState
+from memory.stm_manager import trim
 from llms.model import LLMService
 
+logger = logging.getLogger(__name__)
 
 _services = {
     "bp":       LLMService(prompt_type="bp"),
-    "engineer": LLMService(prompt_type="engineer"),  # must match get_prompt exactly
+    "engineer": LLMService(prompt_type="engineer"),
     "psycho":   LLMService(prompt_type="psycho"),
 }
 
 
-def llm_node(state: AgentState) -> dict:
+def llm_node(state: AgentState, config: RunnableConfig) -> dict:
     persona = state.get("persona", "bp")
     service = _services.get(persona)
 
     if not service:
         err = f"[Error: unknown persona '{persona}']"
-        return {
-            "messages": [AIMessage(content=err)],
-            "current_response": err
-        }
+        return {"messages": [AIMessage(content=err)]}
+
+    # read ltm_context from config — bypasses checkpointer overwrite
+    ltm_context = config.get("configurable", {}).get("ltm_context", "")
+
+    trimmed_state = {
+        **state,
+        "messages":    trim(state.get("messages", [])),
+        "ltm_context": ltm_context,
+    }
 
     full_response = ""
-
-    # stream chunks
-    for chunk in service.generate(state):
+    for chunk in service.generate(trimmed_state):
         print(chunk, end="", flush=True)
         full_response += chunk
 
     print()
 
     return {
-        "messages": [
-            HumanMessage(content=state["user_input"]),
-            AIMessage(content=full_response)
-        ]
+        "messages": [AIMessage(content=full_response)],
     }

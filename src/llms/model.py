@@ -102,7 +102,7 @@ class LLMService:
 
     def build_chain(self):
 
-        llm=ChatGroq(
+        self.llm=ChatGroq(
 
             groq_api_key=settings.GROQ_API_KEY,
 
@@ -113,6 +113,7 @@ class LLMService:
             streaming=self.streaming
 
         )
+        
 
 
 
@@ -124,7 +125,7 @@ class LLMService:
 
         parser = StrOutputParser()
 
-        return prompt | llm | parser
+        return prompt | self.llm | parser
 
 
 
@@ -143,25 +144,23 @@ class LLMService:
             raise ValueError(f"Invalid prompt type: '{prompt_type}'")
 
         return ChatPromptTemplate.from_messages([
-        ("system", templates[prompt_type]),
+        ("system", templates[prompt_type] + "\n\n{ltm_context}"),
         MessagesPlaceholder(variable_name="messages"),
         ("human", "{input}"),
-       ])
+         ])
  
 
     #responce genarating function
 
     def generate(self, state: AgentState):
         try:
-            user_input = state["user_input"]
-            messages = state.get("messages", [])
-            retrieved_context = state.get("retrieved_context", "")
-
-        
-            payload = {
-                "input": user_input,
-                "messages": state.get("messages", []),       
+            ltm = state.get("ltm_context", "")
             
+
+            payload = {
+                "input":       state["user_input"],
+                "messages":    state.get("messages", []),
+                "ltm_context": ltm,
             }
 
             for chunk in self.chain.stream(payload):
@@ -171,7 +170,7 @@ class LLMService:
         except KeyError as e:
             logger.error(f"Missing key in state: {e}")
             yield f"\n[Error: Missing state key {e}]"
-            
+
         except Exception as e:
             logger.exception("Streaming failed")
             yield "\n[Error: Model response interrupted.]"
