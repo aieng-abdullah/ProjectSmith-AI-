@@ -35,18 +35,12 @@ PromptTemplate -> LLM -> OutputParser
 
 
 import logging
-
 from typing import Optional, List
-
 from langchain_groq import ChatGroq
-
 from langchain_core.prompts import ChatPromptTemplate
-
 from langchain_core.output_parsers import StrOutputParser
-
 from llms.config import settings
-
-from llms.prompts import balckpill_prompt ,engineer_prompt, psycho_prompt
+from llms.prompts import advisor_prompt, planner_prompt, cost_prompt, edge_case_prompt, doc_prompt,chat_prompt
 from agents.state import AgentState
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
@@ -135,10 +129,13 @@ class LLMService:
 
     def get_prompt(self, prompt_type: str):
         templates = {
-        "bp":       balckpill_prompt,
-        "engineer": engineer_prompt,
-        "psycho":   psycho_prompt,
-         }
+         "advisor":   advisor_prompt,
+         "chat":      chat_prompt,
+         "planner":   planner_prompt,
+         "cost":      cost_prompt,
+         "edge_case": edge_case_prompt,
+         "doc":       doc_prompt,
+}
 
         if prompt_type not in templates:
             raise ValueError(f"Invalid prompt type: '{prompt_type}'")

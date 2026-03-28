@@ -1,26 +1,32 @@
+from langgraph.graph import END
 from agents.state import AgentState
-from memory.ltm import LongTermMemory
-from llms.config import settings
-import logging
 
-logger = logging.getLogger(__name__)
-
-# Initialize LTM once
-settings = settings.load()
-ltm = LongTermMemory(settings.POSTGRES_URL)
+PLAN_TRIGGERS = {"plan it", "plan this", "build it", "let's plan", "lets plan", "go", "start planning"}
 
 
-def router_node(state: AgentState) -> AgentState:
-    """Retrieve relevant context from long-term memory based on user input."""
-    query = state['user_input']
-    logger.info("Router retrieving context for query: %s", query[:50])
-    
-    try:
-        retrieved = ltm.retrieve(query, k=3)
-        state['retrieved_context'] = retrieved
-        logger.info("Retrieved %d context items", len(retrieved))
-    except Exception as e:
-        logger.error("Failed to retrieve context: %s", str(e))
-        state['retrieved_context'] = []
-    
-    return state
+def router_node(state: AgentState) -> str:
+    user_input = state.get("user_input", "").strip().lower()
+
+    # check if user wants to trigger planning
+    if any(trigger in user_input for trigger in PLAN_TRIGGERS):
+        state["ready_to_plan"] = True
+
+    ready = state.get("ready_to_plan", False)
+
+    if not ready:
+        return "chat"
+
+    # planning sequence
+    if not state.get("plan"):
+        return "planner"
+
+    if not state.get("cost"):
+        return "cost"
+
+    if not state.get("edges"):
+        return "edge_case"
+
+    if not state.get("prd"):
+        return "doc"
+
+    return END

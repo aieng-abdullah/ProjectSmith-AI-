@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 Max_Token = 500
 
 
-_llm=LLMService(prompt_type="bp",streaming=False).llm
+_llm=LLMService(prompt_type="advisor",streaming=False).llm
 
 
 

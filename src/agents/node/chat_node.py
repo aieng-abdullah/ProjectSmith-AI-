@@ -1,27 +1,24 @@
 import logging
 from langchain_core.messages import AIMessage
+from langchain_core.runnables import RunnableConfig
 from agents.state import AgentState
 from memory.stm_manager import trim
 from llms.model import LLMService
-import time
 
 logger = logging.getLogger(__name__)
 
-llm = LLMService(prompt_type="doc")
+llm = LLMService(prompt_type="chat")
 
 
-def doc_node(state: AgentState) -> dict:
-    time.sleep(5)
+def chat_node(state: AgentState, config: RunnableConfig) -> dict:
+    ltm_context = config.get("configurable", {}).get("ltm_context", "")
+
     full_response = ""
     for chunk in llm.generate({
         **state,
-        "messages": trim(state.get("messages", [])),
-        "user_input": f"""
-Project idea: {state.get('user_input', '')}
-Plan: {state.get('plan', '')}
-Cost advice: {state.get('cost', '')}
-Risks and edge cases: {state.get('edges', '')}
-"""
+        "messages":    trim(state.get("messages", [])),
+        "user_input":  state.get("user_input", ""),
+        "ltm_context": ltm_context,
     }):
         print(chunk, end="", flush=True)
         full_response += chunk
@@ -30,5 +27,4 @@ Risks and edge cases: {state.get('edges', '')}
 
     return {
         "messages": [AIMessage(content=full_response)],
-        "prd": full_response
     }

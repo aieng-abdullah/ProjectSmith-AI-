@@ -12,7 +12,7 @@ from llms.model import LLMService
 logger = logging.getLogger(__name__)
 
 # reuse LLM from LLMService — no new instance
-_llm = LLMService(prompt_type="bp", streaming=False).llm
+_llm = LLMService(prompt_type="advisor", streaming=False).llm
 
 
 # ─── SUMMARIZE AND SAVE ──────────────────────────────────────────

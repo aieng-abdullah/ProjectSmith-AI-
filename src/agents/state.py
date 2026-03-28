@@ -7,5 +7,8 @@ from langchain_core.messages import BaseMessage
 class AgentState(TypedDict):
     messages: Annotated[list[BaseMessage], add_messages]
     user_input: str
-    persona: str
-    retrieved_context: str
+    ready_to_plan:bool
+    plan:str
+    cost:str
+    edges:str
+    prd:str

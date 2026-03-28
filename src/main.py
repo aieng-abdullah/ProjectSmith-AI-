@@ -1,5 +1,5 @@
 """
-A cli base program for testing/run tha project without ui
+CLI for testing ProjectSmith AI without UI
 """
 import logging
 import uuid
@@ -7,50 +7,35 @@ from langchain_core.messages import HumanMessage
 from agents.graph import graph
 from memory.ltm_manager import (
     summarize_and_save,
-    extract_and_save_facts,
     load_memories,
 )
 from memory.ltm import init_ltm, delete_memories, list_memories
 
 logging.basicConfig(level=logging.WARNING)
 
-VALID_PERSONAS = ["bp", "engineer", "psycho"]
-
-
-def pick_persona() -> str:
-    print("\nPersonas: bp | engineer | psycho")
-    while True:
-        choice = input("Pick persona: ").strip().lower()
-        if choice in VALID_PERSONAS:
-            return choice
-        print(f"Choose from: {VALID_PERSONAS}")
+PLAN_TRIGGERS = {"plan it", "plan this", "build it", "let's plan", "lets plan", "go", "start planning"}
 
 
 def run():
-    # init LTM table on startup — safe to call every time
     init_ltm()
 
-    persona = pick_persona()
     user_id = input("Username: ").strip() or "default_user"
 
-    # load LTM on session start — injected into system prompt
-    ltm_context = load_memories(user_id, persona)
+    ltm_context = load_memories(user_id, "advisor")
     if ltm_context:
-        print("\n[Memory loaded from past sessions]\n")
+        print("\n[Past projects loaded from memory]\n")
 
     thread_id = str(uuid.uuid4())
-    config    = config = {"configurable": {"thread_id": thread_id, "ltm_context": ltm_context}}
+    config = {"configurable": {"thread_id": thread_id, "ltm_context": ltm_context}}
 
-    print(f"\n[{persona}] Session: {thread_id}")
-    print("Commands: 'new' | 'resume <id>' | 'memories' | 'clearmemory' | 'quit'\n")
+    print(f"\n🔨 ProjectSmith AI  |  Session: {thread_id}")
+    print("Commands: 'new' | 'memories' | 'clearmemory' | 'quit'\n")
 
-    # track messages this session for LTM
     session_messages = []
-    message_count    = 0
 
     while True:
         try:
-            user_input = input("You: ").strip()
+            user_input = input("Your idea: ").strip()
         except KeyboardInterrupt:
             print("\n")
             break
@@ -58,50 +43,43 @@ def run():
         if not user_input:
             continue
 
-        # save LTM on quit
         if user_input.lower() in ("quit", "exit"):
             if session_messages:
                 print("[Saving memory...]")
-                summarize_and_save(session_messages, user_id, persona)
+                summarize_and_save(session_messages, user_id, "advisor")
             print("Bye.")
             break
 
-        # save LTM before new session, reload after
         if user_input.lower() == "new":
             if session_messages:
                 print("[Saving memory...]")
-                summarize_and_save(session_messages, user_id, persona)
-
+                summarize_and_save(session_messages, user_id, "advisor")
             session_messages = []
-            message_count  = 0
-            thread_id  = str(uuid.uuid4())
-            ltm_context  = load_memories(user_id, persona)
-            config  = {"configurable": {"thread_id": thread_id, "ltm_context": ltm_context}}  # updated
+            thread_id = str(uuid.uuid4())
+            ltm_context = load_memories(user_id, "advisor")
+            config = {"configurable": {"thread_id": thread_id, "ltm_context": ltm_context}}
             print(f"[New session: {thread_id}]\n")
             continue
 
-
         if user_input.lower().startswith("resume "):
             thread_id = user_input.split(" ", 1)[1].strip()
-            config    = {"configurable": {"thread_id": thread_id}}
+            config = {"configurable": {"thread_id": thread_id, "ltm_context": ltm_context}}
             print(f"[Resumed: {thread_id}]\n")
             continue
 
-        # show what LTM knows about this user
         if user_input.lower() == "memories":
             mems = list_memories(user_id)
             if not mems:
-                print("[No memories found]\n")
+                print("[No past projects found]\n")
             else:
-                print(f"\n[Memories for {user_id}]:")
+                print(f"\n[Past projects for {user_id}]:")
                 for m in mems:
-                    print(f"  [{m['created_at']}] {m['type']}: {m['content'][:100]}...")
+                    print(f"  [{m['created_at']}] {m['content'][:100]}...")
                 print()
             continue
 
-        # wipe all LTM for this user
         if user_input.lower() == "clearmemory":
-            confirm = input("Wipe all memories? (yes/no): ").strip().lower()
+            confirm = input("Wipe all past projects? (yes/no): ").strip().lower()
             if confirm == "yes":
                 delete_memories(user_id)
                 ltm_context = ""
@@ -110,34 +88,50 @@ def run():
                 print("[Cancelled]\n")
             continue
 
-        print("Assistant: ", end="", flush=True)
-
+        # run the agent
         human_msg = HumanMessage(content=user_input)
         session_messages.append(human_msg)
-        message_count += 1
+
+        # only show spinner when planning is triggered
+        if any(trigger in user_input.lower() for trigger in PLAN_TRIGGERS):
+            print("\n⏳ Building your project plan...\n")
+            print("─" * 40)
 
         try:
             result = graph.invoke(
                 {
-                    "user_input":        user_input,
-                    "persona":           persona,
-                    "retrieved_context": "",
-                    "user_id":           user_id,
-                    "ltm_context":       ltm_context,  # injected into prompt
-                    "messages":          [human_msg],
-                    "plan":              [],
-                    "route":             "",
+                    "user_input":    user_input,
+                    "messages":      [human_msg],
+                    "ready_to_plan": False,
+                    "plan":          "",
+                    "cost":          "",
+                    "edges":         "",
+                    "prd":           "",
                 },
                 config=config,
             )
 
-            # track AI response for LTM
             if result.get("messages"):
                 session_messages.append(result["messages"][-1])
 
-            # extract facts every 5 messages automatically
-            if message_count % 5 == 0:
-                extract_and_save_facts(session_messages, user_id, persona)
+            if result.get("plan"):
+                print("\n📋 PLAN\n")
+                print(result["plan"])
+
+                print("\n" + "─" * 40)
+                print("\n💰 COST & STACK\n")
+                print(result["cost"])
+
+                print("\n" + "─" * 40)
+                print("\n⚠️  EDGE CASES\n")
+                print(result["edges"])
+
+                print("\n" + "─" * 40)
+                print("\n📄 YOUR PROJECT BRIEF\n")
+                print(result["prd"])
+
+                print("\n" + "─" * 40)
+                print("✅ Done! Type 'new' to start a fresh idea.\n")
 
         except Exception as e:
             print(f"\n[Error: {e}]")
