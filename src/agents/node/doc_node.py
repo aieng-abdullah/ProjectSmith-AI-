@@ -1,7 +1,6 @@
 import logging
 from langchain_core.messages import AIMessage
 from agents.state import AgentState
-from memory.stm_manager import trim
 from llms.model import LLMService
 import time
 
@@ -15,13 +14,16 @@ def doc_node(state: AgentState) -> dict:
     full_response = ""
     for chunk in llm.generate({
         **state,
-        "messages": trim(state.get("messages", [])),
+        "messages": [],          # ← empty — no history needed
         "user_input": f"""
 Project idea: {state.get('user_input', '')}
-Plan: {state.get('plan', '')}
-Cost advice: {state.get('cost', '')}
-Risks and edge cases: {state.get('edges', '')}
-"""
+
+Plan summary: {state.get('plan', '')[:500]}
+
+Cost summary: {state.get('cost', '')[:500]}
+
+Risks summary: {state.get('edges', '')[:500]}
+"""                              # ← truncate each section to 500 chars
     }):
         print(chunk, end="", flush=True)
         full_response += chunk

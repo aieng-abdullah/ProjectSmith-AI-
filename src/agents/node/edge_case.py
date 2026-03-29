@@ -15,11 +15,11 @@ def edge_case_node(state: AgentState) -> dict:
     full_response = ""
     for chunk in llm.generate({
         **state,
-        "messages": trim(state.get("messages", [])),
+        "messages": [],
         "user_input": f"""
 Project idea: {state.get('user_input', '')}
-Plan: {state.get('plan', '')}
-Cost: {state.get('cost', '')}
+Plan: {state.get('plan', '')[:500]}
+Cost: {state.get('cost', '')[:500]}
 """
     }):
         print(chunk, end="", flush=True)
