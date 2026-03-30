@@ -1,30 +1,27 @@
+# planner.py
+import logging
 from langchain_core.messages import AIMessage
-from agents.state import AgentState
-from agents.state import AgentState
-from langchain_core.runnables import RunnableConfig
 from agents.state import AgentState
 from llms.model import LLMService
 import time
 
-from memory.stm_manager import trim
-
-
-#define tha llm promt
-llm = LLMService(prompt_type="planner")
-
-
+logger = logging.getLogger(__name__)
+_service = LLMService(prompt_type="planner")
 
 
 def planner_node(state: AgentState) -> dict:
-    time.sleep(5)
     full_response = ""
-    for chunk in llm.generate({
+    callback = state.get("stream_callback")
+
+    for chunk in _service.generate({
         **state,
-        "messages": trim(state.get("messages", [])),  # ← add trim
+        "messages": [],
         "user_input": state.get("user_input", "")
     }):
         print(chunk, end="", flush=True)
         full_response += chunk
+        if callback:
+            callback("planner", chunk)  # ← send chunk to UI
 
     print()
     return {

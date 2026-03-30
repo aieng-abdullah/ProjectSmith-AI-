@@ -12,18 +12,16 @@ llm = LLMService(prompt_type="doc")
 def doc_node(state: AgentState) -> dict:
     time.sleep(5)
     full_response = ""
+
     for chunk in llm.generate({
         **state,
-        "messages": [],          # ← empty — no history needed
+        "messages": [],
         "user_input": f"""
 Project idea: {state.get('user_input', '')}
-
-Plan summary: {state.get('plan', '')[:500]}
-
-Cost summary: {state.get('cost', '')[:500]}
-
-Risks summary: {state.get('edges', '')[:500]}
-"""                              # ← truncate each section to 500 chars
+Plan: {state.get('plan', '')[:500]}
+Cost advice: {state.get('cost', '')[:500]}
+Risks and edge cases: {state.get('edges', '')[:500]}
+"""
     }):
         print(chunk, end="", flush=True)
         full_response += chunk
