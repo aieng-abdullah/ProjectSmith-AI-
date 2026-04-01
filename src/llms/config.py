@@ -24,6 +24,7 @@ class Settings:
     TEMPERATURE: float
     STREAMING:bool
     POSTGRES_URL : str
+    FAST_API:str
 
     @staticmethod
     def load() -> "Settings":
@@ -35,6 +36,8 @@ class Settings:
         postgres_url = os.getenv("POSTGRES_URL")
         if not postgres_url:
             raise ValueError("POSTGRES_URL is missing in environment variables.")
+        
+        fast_api=os.getenv("FAST_API")
 
         return Settings(
             GROQ_API_KEY=groq_api_key,
@@ -42,6 +45,7 @@ class Settings:
             TEMPERATURE=float(os.getenv("TEMPERATURE", 0.7)),
             STREAMING=os.getenv("STREAMING", "true").lower() == "true",
             POSTGRES_URL=postgres_url,
+            FAST_API=fast_api,
         )
 
 
