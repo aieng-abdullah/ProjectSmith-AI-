@@ -1,3 +1,10 @@
+"""
+FastAPI entry point — exposes chat, planning, streaming, and memory endpoints.
+ Connects the LangGraph agent (graph), short-term config, and long-term memory (LTM).
+"""
+
+
+
 from fastapi import FastAPI , HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -18,28 +25,33 @@ app = FastAPI(title="ProjectSmith AI", version="1.0.0")
 init_ltm()
 
 class ChatRequst(BaseModel):
+    """Request body for /chat — basic conversational message from a user."""
     user_id: str
     thread_id:str
     message:str
     
     
 class PlanRequest(BaseModel):
+    """ Request body for /plan and /plan/stream — triggers the full planning pipeline"""
     user_id:   str
     thread_id: str
     message:   str
     
 class SaveRequest(BaseModel):
+    """Request body for /memory/save — persists a conversation to long-term memory."""
     user_id:   str
     message:   list
     
     
 @app.get("/")
 def root():
+    """Health check endpoint — confirms the server is running."""
     return{"status": "ProjectSmith AI Is running"}
 
 
 @app.post("/chat")
 def chat(req:ChatRequst):
+    """Loads user LTM, invokes the agent graph, and returns the last AI message."""
     ltm_context = load_memories(req.user_id,"advisor")
     config ={
         "configurable": {
@@ -68,6 +80,7 @@ def chat(req:ChatRequst):
     
 @app.post("/plan")
 def plan(req:PlanRequest):
+    """Runs the full planning pipeline and returns plan, cost, edges, and PRD in one response."""
     ltm_context = load_memories(req.user_id, "advisor")
     config = {
         "configurable": {
@@ -102,6 +115,8 @@ def plan(req:PlanRequest):
     
 @app.post("/plan/stream")
 def plan_stream(req: PlanRequest):
+    """Streams planning results node-by-node as NDJSON (newline-delimited JSON)."""
+
     ltm_context = load_memories(req.user_id, "advisor")
     config = {
         "configurable": {
@@ -112,6 +127,7 @@ def plan_stream(req: PlanRequest):
     human_msg = HumanMessage(content=req.message)
 
     def generate():
+        """Generator that yields graph node updates as JSON lines."""
         for event in graph.stream(
             {
                 "user_input":    req.message,
@@ -134,6 +150,7 @@ def plan_stream(req: PlanRequest):
 
 @app.post("/memory/save")
 def save_memory(req: SaveRequest):
+    """Converts message dicts to LangChain objects, summarizes, and saves to user LTM."""
     try:
         from langchain_core.messages import HumanMessage, AIMessage
         msgs = [HumanMessage(content=m["content"]) if m["role"] == "user"
@@ -147,6 +164,7 @@ def save_memory(req: SaveRequest):
 
 @app.get("/memory/{user_id}")
 def get_memory(user_id: str):
+    """Returns all stored long-term memories for the given user."""
     from memory.ltm import list_memories
     mems = list_memories(user_id)
     return {"memories": mems}
