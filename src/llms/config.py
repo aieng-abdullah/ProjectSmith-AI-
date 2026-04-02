@@ -26,6 +26,8 @@ class Settings:
     POSTGRES_URL : str
     FAST_API:str
 
+
+
     @staticmethod
     def load() -> "Settings":
         groq_api_key = os.getenv("GROQ_API_KEY")
