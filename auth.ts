@@ -1,13 +1,17 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+import type { NextAuthConfig } from "next-auth";
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    }),
-  ],
+const config: NextAuthConfig = {
+  providers: process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+    ? [
+        Google({
+          clientId: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        }),
+      ]
+    : [],
+  secret: process.env.AUTH_SECRET || "development-secret-change-in-production",
   pages: {
     signIn: "/login",
   },
@@ -18,7 +22,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       
       if (isOnChat) {
         if (isLoggedIn) return true;
-        return false; // Redirect to login page
+        return false;
       }
       
       return true;
@@ -36,4 +40,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session;
     },
   },
-});
+};
+
+export const { handlers, auth, signIn, signOut } = NextAuth(config);
