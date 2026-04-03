@@ -1,5 +1,3 @@
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
   Hammer,
@@ -13,25 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// Check if Google OAuth is configured
-const isAuthConfigured = !!(
-  process.env.GOOGLE_CLIENT_ID && 
-  process.env.GOOGLE_CLIENT_SECRET &&
-  process.env.AUTH_SECRET
-);
-
-export default async function HomePage() {
-  // Demo mode: redirect to chat if auth is not configured
-  if (!isAuthConfigured) {
-    redirect("/chat");
-  }
-
-  const session = await auth();
-
-  if (session?.user) {
-    redirect("/chat");
-  }
-
+export default function HomePage() {
   return (
     <main className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -48,9 +28,9 @@ export default async function HomePage() {
                 ProjectSmith
               </span>
             </div>
-            <Link href="/login">
+            <Link href="/chat">
               <Button variant="outline" className="gap-2">
-                Sign In
+                Start Chatting
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
@@ -67,7 +47,7 @@ export default async function HomePage() {
               project plans. Not a chatbot that just answers questions.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/login">
+              <Link href="/chat">
                 <Button size="lg" className="gap-2 h-12 px-8">
                   Get Started
                   <ArrowRight className="h-4 w-4" />
@@ -152,7 +132,7 @@ export default async function HomePage() {
           <p className="text-muted-foreground mb-8">
             Start a conversation and get your project plan in minutes.
           </p>
-          <Link href="/login">
+          <Link href="/chat">
             <Button size="lg" className="gap-2">
               Get Started Free
               <ArrowRight className="h-4 w-4" />

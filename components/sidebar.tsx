@@ -1,14 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { signOut } from "next-auth/react";
 import useSWR from "swr";
 import {
   Plus,
-  LogOut,
   ChevronLeft,
-  Clock,
-  Trash2,
   MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -147,14 +142,7 @@ export function Sidebar({
               </p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-2 mt-2 text-muted-foreground hover:text-foreground"
-            onClick={() => signOut({ callbackUrl: "/login" })}
-          >
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </Button>
+          
         </div>
       </aside>
     </>
