@@ -7,6 +7,7 @@ FastAPI entry point — exposes chat, planning, streaming, and memory endpoints.
 
 from fastapi import FastAPI , HTTPException
 from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from agents.graph import graph
 from memory.ltm_manager import summarize_and_save, load_memories
@@ -18,6 +19,15 @@ import json
 
 #defin tha app
 app = FastAPI(title="ProjectSmith AI", version="1.0.0")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 
