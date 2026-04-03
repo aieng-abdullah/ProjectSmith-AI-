@@ -1,6 +1,18 @@
 import { auth } from "@/auth";
 
+// Check if Google OAuth is configured
+const isAuthConfigured = !!(
+  process.env.GOOGLE_CLIENT_ID && 
+  process.env.GOOGLE_CLIENT_SECRET &&
+  process.env.AUTH_SECRET
+);
+
 export default auth((req) => {
+  // Skip auth check if OAuth is not configured (demo mode)
+  if (!isAuthConfigured) {
+    return;
+  }
+
   const isLoggedIn = !!req.auth;
   const isOnChat = req.nextUrl.pathname.startsWith("/chat");
 

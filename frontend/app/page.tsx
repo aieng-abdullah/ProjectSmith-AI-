@@ -13,7 +13,19 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+// Check if Google OAuth is configured
+const isAuthConfigured = !!(
+  process.env.GOOGLE_CLIENT_ID && 
+  process.env.GOOGLE_CLIENT_SECRET &&
+  process.env.AUTH_SECRET
+);
+
 export default async function HomePage() {
+  // Demo mode: redirect to chat if auth is not configured
+  if (!isAuthConfigured) {
+    redirect("/chat");
+  }
+
   const session = await auth();
 
   if (session?.user) {
