@@ -16,7 +16,6 @@ st.set_page_config(
     layout="centered"
 )
 
-# ─── API base URL — set API_URL env var in production (HF Spaces secret) ──────
 API = settings.FAST_API
 
 init_ltm()
@@ -27,7 +26,21 @@ PLAN_TRIGGERS = {
 }
 
 
-# ─── ChatGPT-like sidebar CSS ──────────────────────────────────────────────────
+def escape_dollars(text: str) -> str:
+    """Prevent Streamlit from interpreting $ as LaTeX delimiters."""
+    return text.replace("$", r"\$")
+
+
+# ─── Build full conversation context for planning nodes ────────────────────────
+def build_context(messages: list) -> str:
+    lines = []
+    for msg in messages:
+        role = "User" if msg["role"] == "user" else "ProjectSmith"
+        lines.append(f"{role}: {msg['content']}")
+    return "\n".join(lines)
+
+
+# ─── Sidebar CSS ───────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 .session-group-label {
@@ -113,8 +126,7 @@ def group_by_date(mems):
     today     = date.today()
     yesterday = today - timedelta(days=1)
     week_ago  = today - timedelta(days=7)
-
-    groups = {"Today": [], "Yesterday": [], "Previous 7 Days": [], "Older": []}
+    groups    = {"Today": [], "Yesterday": [], "Previous 7 Days": [], "Older": []}
 
     for m in mems:
         raw = m.get("created_at", "")
@@ -181,7 +193,6 @@ st.title("🔨 ProjectSmith AI")
 
 with st.sidebar:
 
-    # ── Identity + actions ─────────────────────────────────────────────────────
     st.write(f"👤 **{st.session_state.user_id}**")
     st.write(f"🧵 `{st.session_state.thread_id[:8]}...`")
     st.divider()
@@ -218,7 +229,6 @@ with st.sidebar:
     st.divider()
     st.caption("⚠️ Always validate AI advice with real experts.")
 
-    # ── ChatGPT-style history ──────────────────────────────────────────────────
     mems = list_memories(st.session_state.user_id) if st.session_state.user_id else []
 
     if not mems:
@@ -240,7 +250,6 @@ with st.sidebar:
             for m in group_mems:
                 mem_id = m.get("id", "")
                 title  = session_title(m)
-
                 col_title, col_del = st.columns([6, 1])
 
                 with col_title:
@@ -262,7 +271,6 @@ with st.sidebar:
                     with st.container(border=True):
                         st.caption(m.get("content", "No content available."))
 
-        # ── Clear all — two-step confirm ───────────────────────────────────────
         st.divider()
         if not st.session_state.confirm_delete:
             if st.button("🧹 Clear All", use_container_width=True):
@@ -299,14 +307,14 @@ if st.session_state.plan_result:
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("📋 Plan")
-        st.markdown(result.get("plan", ""))
+        st.markdown(escape_dollars(result.get("plan", "")))        # ← fixed
         st.subheader("⚠️ Edge Cases")
-        st.markdown(result.get("edges", ""))
+        st.markdown(escape_dollars(result.get("edges", "")))       # ← fixed
     with col2:
         st.subheader("💰 Cost & Stack")
-        st.markdown(result.get("cost", ""))
+        st.markdown(escape_dollars(result.get("cost", "")))        # ← fixed
         st.subheader("📄 Project Brief")
-        st.markdown(result.get("prd", ""))
+        st.markdown(escape_dollars(result.get("prd", "")))         # ← fixed
     st.divider()
 
     idea      = st.session_state.messages[0]["content"] if st.session_state.messages else "project"
@@ -335,7 +343,6 @@ if st.session_state.plan_result:
 user_input = st.chat_input("Describe your idea...")
 
 if user_input:
-    # ── Append user message immediately ───────────────────────────────────────
     st.session_state.messages.append({"role": "user", "content": user_input})
     st.session_state.session_messages.append({"role": "user", "content": user_input})
 
@@ -369,21 +376,23 @@ if user_input:
             prd_box.markdown("_⏳ Waiting..._")
 
             try:
+                conversation = build_context(st.session_state.messages)
+
                 result = req.post(
                     f"{API}/plan",
                     json={
-                        "user_id":   st.session_state.user_id,
-                        "thread_id": st.session_state.thread_id,
-                        "message":   user_input,
+                        "user_id":      st.session_state.user_id,
+                        "thread_id":    st.session_state.thread_id,
+                        "message":      conversation,
+                        "conversation": conversation,
                     },
-                    timeout=120   # planning is slow — give it time
+                    timeout=120
                 ).json()
 
-                # ── Populate the placeholder boxes once result arrives ─────────
-                plan_box.markdown(result.get("plan",  "_No plan returned._"))
-                cost_box.markdown(result.get("cost",  "_No cost data returned._"))
-                edges_box.markdown(result.get("edges","_No edge cases returned._"))
-                prd_box.markdown(result.get("prd",   "_No brief returned._"))
+                plan_box.markdown(escape_dollars(result.get("plan",  "_No plan returned._")))    # ← fixed
+                cost_box.markdown(escape_dollars(result.get("cost",  "_No cost data returned._"))) # ← fixed
+                edges_box.markdown(escape_dollars(result.get("edges","_No edge cases returned._"))) # ← fixed
+                prd_box.markdown(escape_dollars(result.get("prd",   "_No brief returned._")))    # ← fixed
                 status.markdown("✅ **Your project plan is ready!**")
 
                 st.session_state.plan_result = {
@@ -402,7 +411,7 @@ if user_input:
                 })
 
             except req.exceptions.Timeout:
-                st.error("❌ The planning request timed out. Your idea may be complex — try again.")
+                st.error("❌ The planning request timed out. Try again.")
 
             except req.exceptions.ConnectionError:
                 st.error(f"❌ Could not reach the backend at `{API}`. Is the API server running?")
@@ -410,10 +419,9 @@ if user_input:
             except Exception as e:
                 st.error(f"❌ Unexpected error: {e}")
 
-            # Always rerun after planning attempt so the plan_result section renders
             st.rerun()
 
-        # ── Regular chat flow ──────────────────────────────────────────────────
+        # ── Chat flow ──────────────────────────────────────────────────────────
         else:
             response_box = st.empty()
             response     = ""
@@ -429,7 +437,7 @@ if user_input:
                     timeout=30
                 ).json()
 
-                response = result.get("response", "Sorry, I couldn't generate a response.")
+                response = escape_dollars(result.get("response", "Sorry, I could not generate a response."))  # ← fixed
 
             except req.exceptions.Timeout:
                 response = "❌ The request timed out. Please try again."
@@ -440,7 +448,6 @@ if user_input:
             except Exception as e:
                 response = f"❌ Unexpected error: {e}"
 
-            # ── Typewriter effect ──────────────────────────────────────────────
             displayed = ""
             for char in response:
                 displayed += char
