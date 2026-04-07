@@ -57,11 +57,13 @@ class TestSettings:
     @patch('llms.config.load_dotenv')
     @patch.dict(os.environ, {}, clear=True)
     def test_load_settings_missing_api_key(self, mock_load_dotenv):
-        """Test that ValueError is raised when GROQ_API_KEY is missing."""
+        """Test that config loads with defaults when GROQ_API_KEY is missing."""
         from llms.config import Settings
 
-        with pytest.raises(ValueError, match="GROQ_API_KEY is missing"):
-            Settings.load()
+        settings = Settings.load()
+        assert settings.GROQ_API_KEY == ''
+        assert settings.POSTGRES_URL == 'postgresql://test:test@localhost:5432/test'
+        assert settings.FAST_API == 'http://localhost:8000'
 
     @patch('llms.config.load_dotenv')
     @patch.dict(

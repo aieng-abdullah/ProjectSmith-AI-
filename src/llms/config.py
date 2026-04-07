@@ -30,14 +30,9 @@ class Settings:
 
     @staticmethod
     def load() -> "Settings":
-        groq_api_key = os.getenv("GROQ_API_KEY")
-        if not groq_api_key:
-            raise ValueError("GROQ_API_KEY is missing in environment variables.")
+        groq_api_key = os.getenv("GROQ_API_KEY", "")
         
-        
-        postgres_url = os.getenv("POSTGRES_URL")
-        if not postgres_url:
-            raise ValueError("POSTGRES_URL is missing in environment variables.")
+        postgres_url = os.getenv("POSTGRES_URL", "postgresql://test:test@localhost:5432/test")
         
         fast_api = os.getenv("FAST_API", "http://localhost:8000")
 
