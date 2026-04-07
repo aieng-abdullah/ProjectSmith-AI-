@@ -9,6 +9,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: src
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     services:
       postgres:
@@ -27,10 +30,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
@@ -44,4 +47,4 @@ jobs:
           POSTGRES_URL: postgresql://postgres:postgres@localhost:5432/projectsmith
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
-          pytest tests/ -v --tb=short
+          python -m pytest tests/ -v --tb=short
