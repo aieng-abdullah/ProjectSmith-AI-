@@ -1,9 +1,17 @@
 """Tests for LLM model service."""
+import os
 import pytest
 from unittest.mock import patch, MagicMock
 from langchain_core.prompts import ChatPromptTemplate
 
+TEST_ENV = {
+    'GROQ_API_KEY': 'test-key',
+    'POSTGRES_URL': 'postgresql://postgres:postgres@localhost:5432/projectsmith',
+    'FAST_API': 'http://localhost:8000',
+}
 
+
+@patch.dict(os.environ, TEST_ENV, clear=True)
 class TestLLMService:
     """Test cases for LLMService class."""
 

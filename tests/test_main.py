@@ -1,8 +1,16 @@
 """Tests for main entry point."""
+import os
 import pytest
 from unittest.mock import patch, MagicMock
 
+TEST_ENV = {
+    'GROQ_API_KEY': 'test-key',
+    'POSTGRES_URL': 'postgresql://postgres:postgres@localhost:5432/projectsmith',
+    'FAST_API': 'http://localhost:8000',
+}
 
+
+@patch.dict(os.environ, TEST_ENV, clear=True)
 class TestMain:
     """Test cases for main.py."""
 

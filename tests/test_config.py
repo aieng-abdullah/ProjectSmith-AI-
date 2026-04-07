@@ -16,6 +16,7 @@ class TestSettings:
             'TEMPERATURE': '0.5',
             'STREAMING': 'false',
             'POSTGRES_URL': 'postgresql://postgres:postgres@localhost:5432/projectsmith',
+            'FAST_API': 'http://localhost:8000',
         },
         clear=True,
     )
@@ -37,6 +38,7 @@ class TestSettings:
         {
             'GROQ_API_KEY': 'test-api-key',
             'POSTGRES_URL': 'postgresql://postgres:postgres@localhost:5432/projectsmith',
+            'FAST_API': 'http://localhost:8000',
         },
         clear=True,
     )
@@ -67,6 +69,7 @@ class TestSettings:
         {
             'GROQ_API_KEY': 'test-key',
             'POSTGRES_URL': 'postgresql://postgres:postgres@localhost:5432/projectsmith',
+            'FAST_API': 'http://localhost:8000',
             'STREAMING': 'True',
         },
         clear=True,
@@ -84,6 +87,7 @@ class TestSettings:
         {
             'GROQ_API_KEY': 'test-key',
             'POSTGRES_URL': 'postgresql://postgres:postgres@localhost:5432/projectsmith',
+            'FAST_API': 'http://localhost:8000',
             'STREAMING': 'False',
         },
         clear=True,
