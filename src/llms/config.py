@@ -43,7 +43,7 @@ class Settings:
 
         return Settings(
             GROQ_API_KEY=groq_api_key,
-            MODEL_NAME=os.getenv("MODEL_NAME", "openai/gpt-oss-120b"),
+            MODEL_NAME=os.getenv("MODEL_NAME", "llama-3.3-70b-versatile"),
             TEMPERATURE=float(os.getenv("TEMPERATURE", 0.7)),
             STREAMING=os.getenv("STREAMING", "true").lower() == "true",
             POSTGRES_URL=postgres_url,

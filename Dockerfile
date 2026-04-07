@@ -9,6 +9,8 @@ COPY src/ .
 
 EXPOSE 7860
 
+ENV PYTHONPATH=/app
+
 CMD ["python", "-m", "streamlit", "run", "chatbot/app.py", \
      "--server.port=7860", \
      "--server.address=0.0.0.0"]

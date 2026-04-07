@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database for STM and LTM
+  postgres:
+    image: postgres:15-alpine
+    container_name: projectsmith_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: projectsmith
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - projectsmith_network
+
+  # FastAPI Backend Server
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: projectsmith_api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/projectsmith
+      MODEL_NAME: ${MODEL_NAME:-llama-3.1-8b-instant}
+      TEMPERATURE: ${TEMPERATURE:-0.7}
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "8000:8000"
+    networks:
+      - projectsmith_network
+    volumes:
+      - ./src:/app
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.connect(('localhost', 8000)); s.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Streamlit Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: projectsmith_ui
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      FAST_API: http://backend:8000
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/projectsmith
+      MODEL_NAME: ${MODEL_NAME:-llama-3.1-8b-instant}
+      TEMPERATURE: ${TEMPERATURE:-0.7}
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "8501:8501"
+    networks:
+      - projectsmith_network
+    volumes:
+      - ./src:/app
+    command: streamlit run chatbot/app.py --server.port=8501 --server.address=0.0.0.0
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  projectsmith_network:
+    driver: bridge
