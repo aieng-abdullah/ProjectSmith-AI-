@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 class TestMain:
     """Test cases for main.py."""
 
-    @patch('builtins.input', side_effect=['bp', 'hello', 'exit'])
+    @patch('builtins.input', side_effect=['advisor', 'hello', 'exit'])
     @patch('main.LLMService')
     def test_main_initialization(self, mock_llm_service_class, mock_input):
         """Test main function initializes LLMService correctly."""
@@ -18,12 +18,12 @@ class TestMain:
 
         main()
 
-        mock_llm_service_class.assert_called_once_with(prompt_type='bp')
+        mock_llm_service_class.assert_called_once_with(prompt_type='advisor')
 
-    @patch('builtins.input', side_effect=['psycho', 'test message', 'exit'])
+    @patch('builtins.input', side_effect=['chat', 'test message', 'exit'])
     @patch('main.LLMService')
-    def test_main_persona_selection_psycho(self, mock_llm_service_class, mock_input):
-        """Test main function with psycho persona selection."""
+    def test_main_persona_selection_chat(self, mock_llm_service_class, mock_input):
+        """Test main function with chat persona selection."""
         mock_llm_instance = MagicMock()
         mock_llm_instance.generate.return_value = ['test']
         mock_llm_service_class.return_value = mock_llm_instance
@@ -32,9 +32,9 @@ class TestMain:
 
         main()
 
-        mock_llm_service_class.assert_called_once_with(prompt_type='psycho')
+        mock_llm_service_class.assert_called_once_with(prompt_type='chat')
 
-    @patch('builtins.input', side_effect=['bp', 'hello', 'exit'])
+    @patch('builtins.input', side_effect=['advisor', 'hello', 'exit'])
     @patch('main.LLMService')
     def test_main_calls_generate(self, mock_llm_service_class, mock_input):
         """Test that main calls generate method with user input."""
@@ -46,8 +46,7 @@ class TestMain:
 
         main()
 
-        # Verify generate was called
-        mock_llm_instance.generate.assert_called()
+        mock_llm_instance.generate.assert_called_once()
         calls = mock_llm_instance.generate.call_args_list
         assert any('hello' in str(call) for call in calls)
 

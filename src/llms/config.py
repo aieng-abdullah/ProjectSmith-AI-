@@ -39,7 +39,10 @@ class Settings:
         if not postgres_url:
             raise ValueError("POSTGRES_URL is missing in environment variables.")
         
-        fast_api=os.getenv("FAST_API")
+        fast_api = os.getenv("FAST_API")
+        if not fast_api:
+            raise ValueError("FAST_API is missing in environment variables.")
+        
 
         return Settings(
             GROQ_API_KEY=groq_api_key,
