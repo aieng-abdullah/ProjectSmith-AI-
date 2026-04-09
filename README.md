@@ -22,6 +22,12 @@
 
 ---
 
+## 🚀 Live Demo
+
+> **Try it now:** [your-live-link-here.com](https://your-live-link-here.com --- coming sooon...)
+
+---
+
 ## What It Does
 
 ProjectSmith AI is not a chatbot that answers questions. It is an agent that thinks like a senior advisor — it challenges your assumptions, stress-tests your idea, then generates a structured project plan, cost breakdown, edge case analysis, and a downloadable PRD document.
