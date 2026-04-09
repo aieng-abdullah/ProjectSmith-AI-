@@ -8,7 +8,12 @@ from memory.ltm import init_ltm, delete_memories, list_memories
 from fpdf import FPDF
 import requests as req
 from llms.config import settings
+import sys
+import os
 
+
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 st.set_page_config(
     page_title="ProjectSmith AI",
