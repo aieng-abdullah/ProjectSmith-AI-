@@ -1,6 +1,27 @@
 import logging
+from langchain_core.messages import trim_messages
 
 logger = logging.getLogger(__name__)
+
+MAX_TOKENS = 500
+
+def trim(messages: list) -> list:
+    if not messages:
+        return []
+    try:
+        def count_tokens(msgs):
+            return sum(len(str(m.content)) // 4 for m in msgs)
+        return trim_messages(
+            messages,
+            token_counter=count_tokens,
+            max_tokens=MAX_TOKENS,
+            strategy="last",
+            include_system=True,
+            allow_partial=False,
+        )
+    except Exception as e:
+        logger.exception("trim failed, returning original")
+        return messages
 
 def get_thread(thread_id: str) -> dict | None:
     return None
