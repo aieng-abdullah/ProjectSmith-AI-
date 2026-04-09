@@ -1,50 +1,21 @@
-"""
-STM utilities — trim, summarize.
-Trim runs automatically on every LLM call.
-Summarize is called manually via 'summarize' command in CLI.
-"""
-
-import logging 
-from langchain_core.messages import AIMessage , HumanMessage, trim_messages
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from llms.model import LLMService
+import logging
 
 logger = logging.getLogger(__name__)
 
-Max_Token = 500
+def get_thread(thread_id: str) -> dict | None:
+    return None
 
+def get_messages(thread_id: str) -> list:
+    return []
 
-_llm=LLMService(prompt_type="advisor",streaming=False).llm
+def list_threads(user_id: str) -> list[dict]:
+    return []
 
+def list_all_threads() -> list[str]:
+    return []
 
+def delete_thread(thread_id: str) -> bool:
+    return True
 
-#Triming messages
-
-def trim(messages: list) -> list:
-    """
-    Filters messages to MAX_TOKENS before passing to LLM.
-    Uses simple word-based counting — good enough for prototyping.
-    """
-    if not messages:
-        return []
-
-    try:
-        # simple token counter — no extra dependencies needed
-        # roughly 1 token per 4 characters
-        def count_tokens(msgs):
-            return sum(len(str(m.content)) // 4 for m in msgs)
-
-        return trim_messages(
-            messages,
-            token_counter=count_tokens,  # simple counter, no transformers needed
-            max_tokens=Max_Token,
-            strategy="last",
-            include_system=True,
-            allow_partial=False,
-        )
-    except Exception as e:
-        logger.exception("trim failed returning original")
-        return messages
-    
-    
+def delete_all_threads(user_id: str) -> bool:
+    return True
