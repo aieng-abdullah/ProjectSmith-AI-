@@ -6,7 +6,8 @@ import logging
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from memory.ltm import save_summary, save_fact, fetch_memories
+from memory.ltm import supabase_load_memories
+from memory.ltm import save_summary, save_fact
 from llms.model import LLMService
 
 logger = logging.getLogger(__name__)
@@ -127,7 +128,7 @@ def load_memories(user_id: str, persona: str) -> str:
     Called at session start — result injected into system prompt.
     Returns empty string if no memories found.
     """
-    memories = fetch_memories(user_id, persona, limit=5)
+    memories = supabase_load_memories(user_id, persona, limit=7)
 
     if not memories:
         logger.info(f"No LTM found for user: {user_id}")

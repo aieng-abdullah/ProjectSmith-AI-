@@ -13,3 +13,4 @@ ddgs
 fpdf2
 fastapi
 uvicorn
+supabase

@@ -1,7 +1,7 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  # PostgreSQL database for STM and LTM
+  # PostgreSQL database for STM
   postgres:
     image: postgres:15-alpine
     container_name: projectsmith_postgres
@@ -33,6 +33,8 @@ services:
     environment:
       GROQ_API_KEY: ${GROQ_API_KEY}
       POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/projectsmith
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_KEY: ${SUPABASE_KEY}
       MODEL_NAME: ${MODEL_NAME:-llama-3.1-8b-instant}
       TEMPERATURE: ${TEMPERATURE:-0.7}
       PYTHONUNBUFFERED: 1
@@ -61,6 +63,8 @@ services:
       FAST_API: http://backend:8000
       GROQ_API_KEY: ${GROQ_API_KEY}
       POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/projectsmith
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_KEY: ${SUPABASE_KEY}
       MODEL_NAME: ${MODEL_NAME:-llama-3.1-8b-instant}
       TEMPERATURE: ${TEMPERATURE:-0.7}
       PYTHONUNBUFFERED: 1

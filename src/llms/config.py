@@ -22,19 +22,21 @@ class Settings:
     GROQ_API_KEY: str
     MODEL_NAME: str
     TEMPERATURE: float
-    STREAMING:bool
-    POSTGRES_URL : str
-    FAST_API:str
+    STREAMING: bool
+    POSTGRES_URL: str
+    FAST_API: str
+    SUPABASE_URL: str
+    SUPABASE_KEY: str
 
 
 
     @staticmethod
     def load() -> "Settings":
         groq_api_key = os.getenv("GROQ_API_KEY", "")
-        
         postgres_url = os.getenv("POSTGRES_URL", "postgresql://test:test@localhost:5432/test")
-        
         fast_api = os.getenv("FAST_API", "http://localhost:8000")
+        supabase_url = os.getenv("SUPABASE_URL", "")
+        supabase_key = os.getenv("SUPABASE_KEY", "")
 
         return Settings(
             GROQ_API_KEY=groq_api_key,
@@ -43,6 +45,8 @@ class Settings:
             STREAMING=os.getenv("STREAMING", "true").lower() == "true",
             POSTGRES_URL=postgres_url,
             FAST_API=fast_api,
+            SUPABASE_URL=supabase_url,
+            SUPABASE_KEY=supabase_key,
         )
 
 

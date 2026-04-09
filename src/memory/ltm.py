@@ -1,138 +1,121 @@
+"""
+LTM — Long Term Memory via Supabase.
+Handles summaries and facts for all personas.
+"""
 import logging
-import psycopg
+from supabase import create_client
 from llms.config import settings
 
 logger = logging.getLogger(__name__)
 
-CREATE_TABLE = """
-CREATE TABLE IF NOT EXISTS long_term_memory (
-    id          SERIAL PRIMARY KEY,
-    user_id     TEXT        NOT NULL,
-    persona     TEXT        NOT NULL,
-    memory_type TEXT        NOT NULL,
-    content     TEXT        NOT NULL,
-    created_at  TIMESTAMP   DEFAULT NOW()
-);
-"""
-
-CREATE_INDEX = """
-CREATE INDEX IF NOT EXISTS ltm_user_id_idx
-ON long_term_memory (user_id, persona);
-"""
-
-
-def _connect():
-    return psycopg.connect(settings.POSTGRES_URL, autocommit=True)
+client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
 
 
 def init_ltm():
-    try:
-        with _connect() as conn:
-            with conn.cursor() as cur:
-                cur.execute(CREATE_TABLE)
-                cur.execute(CREATE_INDEX)
-        logger.info("LTM table ready")
-    except Exception as e:
-        logger.exception("LTM init failed")
-        raise RuntimeError(f"LTM init failed: {e}")
+    logger.info("Supabase LTM ready")
 
+
+# ─── SAVE ────────────────────────────────────────────────────────
 
 def save_summary(user_id: str, persona: str, summary: str) -> bool:
     try:
-        with _connect() as conn:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    INSERT INTO long_term_memory
-                        (user_id, persona, memory_type, content)
-                    VALUES (%s, %s, 'summary', %s)
-                """, (user_id, persona, summary))
-        logger.info(f"Summary saved for user: {user_id}")
+        client.table('long_term_memory').insert({
+            'user_id':      user_id,
+            'persona':      persona,
+            'memory_type':  'summary',
+            'content':      summary
+        }).execute()
+        logger.info(f"Summary saved | user={user_id} persona={persona}")
         return True
     except Exception as e:
         logger.exception("save_summary failed")
         return False
 
 
-def save_fact(user_id: str, persona: str, fact: str) -> bool:
+def save_fact(user_id: str, persona: str, facts: str) -> bool:
     try:
-        with _connect() as conn:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    INSERT INTO long_term_memory
-                        (user_id, persona, memory_type, content)
-                    VALUES (%s, %s, 'fact', %s)
-                """, (user_id, persona, fact))
-        logger.info(f"Fact saved for user: {user_id}")
+        client.table('long_term_memory').insert({
+            'user_id':      user_id,
+            'persona':      persona,
+            'memory_type':  'fact',
+            'content':      facts
+        }).execute()
+        logger.info(f"Fact saved | user={user_id} persona={persona}")
         return True
     except Exception as e:
         logger.exception("save_fact failed")
         return False
 
 
-def fetch_memories(user_id: str, persona: str, limit: int = 5) -> str:
+# ─── LOAD ────────────────────────────────────────────────────────
+
+def load_memories(user_id: str, persona: str) -> str:
+    """Basic load — returns all memories joined as string."""
     try:
-        with _connect() as conn:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    SELECT memory_type, content, created_at
-                    FROM long_term_memory
-                    WHERE user_id = %s AND persona = %s
-                    ORDER BY created_at DESC
-                    LIMIT %s
-                """, (user_id, persona, limit))
-                rows = cur.fetchall()
-
-        if not rows:
-            return ""
-
-        lines = ["[What you know about this user from past sessions:]"]
-        for memory_type, content, created_at in reversed(rows):
-            date = created_at.strftime("%Y-%m-%d")
-            lines.append(f"[{date} | {memory_type}]: {content}")
-
-        return "\n".join(lines)
-
+        result = (
+            client.table('long_term_memory')
+            .select('content')
+            .eq('user_id', user_id)
+            .eq('persona', persona)
+            .order('created_at', desc=True)
+            .execute()
+        )
+        memories = result.data
+        return " | ".join([m['content'] for m in memories]) if memories else ""
     except Exception as e:
-        logger.exception("fetch_memories failed")
+        logger.exception("load_memories failed")
         return ""
 
 
-def delete_memories(user_id: str) -> bool:
+def supabase_load_memories(user_id: str, persona: str, limit: int = 7) -> str:
+    """Load with limit — used by ltm_manager at session start."""
     try:
-        with _connect() as conn:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    DELETE FROM long_term_memory
-                    WHERE user_id = %s
-                """, (user_id,))
-                deleted = cur.rowcount
-                logger.info(f"Deleted {deleted} memories for user: {user_id}")
-                return True
+        result = (
+            client.table('long_term_memory')
+            .select('content')
+            .eq('user_id', user_id)
+            .eq('persona', persona)
+            .order('created_at', desc=True)
+            .limit(limit)
+            .execute()
+        )
+        memories = result.data
+        return " | ".join([m['content'] for m in memories]) if memories else ""
     except Exception as e:
-        logger.exception("delete_memories failed")
-        return False
+        logger.exception("supabase_load_memories failed")
+        return ""
 
 
-def list_memories(user_id: str) -> list[dict]:
+# ─── ADMIN ───────────────────────────────────────────────────────
+
+def list_memories(user_id: str) -> list:
+    """Returns all raw memory rows for a user."""
     try:
-        with _connect() as conn:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    SELECT id, memory_type, content, created_at
-                    FROM long_term_memory
-                    WHERE user_id = %s
-                    ORDER BY created_at DESC
-                """, (user_id,))
-                rows = cur.fetchall()
-                return [
-                    {
-                        "id":         row[0],
-                        "type":       row[1],
-                        "content":    row[2],
-                        "created_at": row[3].strftime("%Y-%m-%d %H:%M"),
-                    }
-                    for row in rows
-                ]
+        result = (
+            client.table('long_term_memory')
+            .select('*')
+            .eq('user_id', user_id)
+            .order('created_at', desc=True)
+            .execute()
+        )
+        return result.data if result.data else []
     except Exception as e:
         logger.exception("list_memories failed")
         return []
+
+
+def delete_memories(user_id_or_id: str) -> bool:
+    """
+    Delete by row ID (if numeric) or by user_id (wipes all).
+    """
+    try:
+        if user_id_or_id.isdigit():
+            client.table('long_term_memory').delete().eq('id', int(user_id_or_id)).execute()
+            logger.info(f"Deleted memory row id={user_id_or_id}")
+        else:
+            client.table('long_term_memory').delete().eq('user_id', user_id_or_id).execute()
+            logger.info(f"Deleted all memories for user={user_id_or_id}")
+        return True
+    except Exception as e:
+        logger.exception("delete_memories failed")
+        return False
