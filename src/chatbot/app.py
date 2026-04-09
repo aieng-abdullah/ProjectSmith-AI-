@@ -1,4 +1,6 @@
 import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import streamlit as st
 import uuid
 import time
@@ -8,12 +10,10 @@ from memory.ltm import init_ltm, delete_memories, list_memories
 from fpdf import FPDF
 import requests as req
 from llms.config import settings
-import sys
-import os
 
 
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
 
 st.set_page_config(
     page_title="ProjectSmith AI",
@@ -21,7 +21,7 @@ st.set_page_config(
     layout="centered"
 )
 
-API = settings.FAST_API
+API = st.secrets.get("FAST_API", os.getenv("FAST_API", "https://projectsmith-ai.onrender.com"))
 
 init_ltm()
 
