@@ -106,7 +106,7 @@ def base_state(user_input: str) -> dict:
     return {
         "user_input":    user_input,
         "messages":      [HumanMessage(content=user_input)],
-        "ready_to_plan": False,
+        "ready_to_plan": True,
         "plan":          "",
         "cost":          "",
         "edges":         "",
