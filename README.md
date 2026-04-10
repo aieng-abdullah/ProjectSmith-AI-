@@ -22,9 +22,10 @@
 
 ---
 
-## 🚀 Live Demo
+## 🚀 Live Link
 
-> **Try it now:** [your-live-link-here.com](https://your-live-link-here.com --- coming sooon...)
+> **Try it now:** **[projectsmithai.streamlit.app](https://projectsmithai.streamlit.app)**
+
 
 ---
 
@@ -157,7 +158,7 @@ act on it.
 - **Conversational idea validation** — challenges assumptions and pushes for specifics before any planning begins
 - **4-node planning pipeline** — planner, cost advisor, edge case finder, and PRD generator run sequentially via LangGraph
 - **Live web search** — cost node fetches real-time pricing data via DuckDuckGo before generating recommendations
-- **Dual memory system** — STM (PostgreSQL checkpointer per session) and LTM (cross-session summaries per user)
+- **Dual memory system** — STM (in-memory per session) and LTM (cross-session summaries via Supabase)
 - **Conditional routing** — `router_node` sequences nodes based on what is missing in state, detects plan triggers automatically
 - **FastAPI backend** — REST endpoints with streaming NDJSON support
 - **Streamlit UI** — node-level streaming updates, each section appears as soon as its node completes
@@ -169,11 +170,13 @@ act on it.
 
 ```
 ┌─────────────────────────────────────────┐
-│           Streamlit UI  :8501            │
+│      Streamlit Cloud (Frontend)          │
+│      projectsmithai.streamlit.app        │
 └────────────────────┬────────────────────┘
                      │ HTTP
 ┌────────────────────▼────────────────────┐
-│           FastAPI Server  :8000          │
+│      Render (FastAPI Backend)            │
+│      projectsmith-ai.onrender.com        │
 │  POST /chat | POST /plan | /plan/stream  │
 └────────────────────┬────────────────────┘
                      │
@@ -191,12 +194,12 @@ act on it.
                      │
 ┌────────────────────▼────────────────────┐
 │          Dual Memory System              │
-│  STM  PostgreSQL Checkpointer            │
-│  LTM  PostgreSQL Table                   │
+│  STM  MemorySaver (per session)          │
+│  LTM  Supabase PostgreSQL                │
 └────────────────────┬────────────────────┘
                      │
 ┌────────────────────▼────────────────────┐
-│      Groq LLM  openai/gpt-oss-120b       │
+│         Groq LLM  llama-3.3-70b          │
 └─────────────────────────────────────────┘
 ```
 
@@ -215,12 +218,63 @@ When the user types `plan it`, the agent triggers a sequential 4-node pipeline. 
 
 ---
 
+## Deployment
+
+This project runs on a fully free stack across three platforms.
+
+| Layer | Platform | URL |
+|-------|----------|-----|
+| Frontend | Streamlit Cloud | [projectsmithai.streamlit.app](https://projectsmithai.streamlit.app) |
+| Backend | Render | [projectsmith-ai.onrender.com](https://projectsmith-ai.onrender.com) |
+| Database | Supabase | Managed PostgreSQL |
+
+### Deploy the backend (Render)
+
+1. Create a new Web Service on [render.com](https://render.com)
+2. Connect your GitHub repo
+3. Set **Dockerfile Path** to `./Dockerfile.api`
+4. Add environment variables:
+
+```
+GROQ_API_KEY   = your_groq_api_key
+POSTGRES_URL   = your_supabase_session_pooler_url
+MODEL_NAME     = llama-3.3-70b-versatile
+TEMPERATURE    = 0.7
+SUPABASE_URL   = https://your-project.supabase.co
+SUPABASE_KEY   = your_supabase_anon_key
+```
+
+5. Deploy — backend goes live at `https://your-service.onrender.com`
+
+> **Tip:** Use [UptimeRobot](https://uptimerobot.com) (free) to ping your backend every 5 minutes so it never sleeps on the free tier.
+
+### Deploy the frontend (Streamlit Cloud)
+
+1. Go to [share.streamlit.io](https://share.streamlit.io) → New app
+2. Connect your GitHub repo
+3. Set **Main file** to `src/chatbot/app.py`
+4. Add secrets under **Advanced settings**:
+
+```toml
+GROQ_API_KEY = "your_groq_api_key"
+POSTGRES_URL = "your_supabase_session_pooler_url"
+FAST_API     = "https://your-render-backend.onrender.com"
+MODEL_NAME   = "llama-3.3-70b-versatile"
+SUPABASE_URL = "https://your-project.supabase.co"
+SUPABASE_KEY = "your_supabase_anon_key"
+TEMPERATURE  = "0.7"
+```
+
+5. Deploy — frontend goes live at `https://your-app.streamlit.app`
+
+---
+
 ## Prerequisites
 
 - Python 3.10+
 - Docker and Docker Compose
 - Groq API key — free at [console.groq.com](https://console.groq.com)
-- PostgreSQL 15+ (handled automatically via Docker)
+- Supabase account — free at [supabase.com](https://supabase.com)
 
 ---
 
@@ -240,7 +294,9 @@ Create a `.env` file in the project root:
 ```env
 GROQ_API_KEY=your_groq_api_key_here
 POSTGRES_URL=postgresql://postgres:postgres@localhost:5432/projectsmith
-MODEL_NAME=openai/gpt-oss-120b
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your_supabase_anon_key
+MODEL_NAME=llama-3.3-70b-versatile
 TEMPERATURE=0.7
 ```
 
@@ -278,20 +334,12 @@ cd src
 python -m streamlit run chatbot/app.py
 ```
 
-### Run CLI for testing
-
-```bash
-cd src
-python main.py
-```
-
 ### CLI commands
 
 | Command | Action |
 |---------|--------|
 | `plan it` | Triggers the full 4-node planning pipeline |
 | `new` | Saves session to LTM and starts fresh |
-| `resume <id>` | Resumes a past session by thread ID |
 | `memories` | Lists past project summaries from LTM |
 | `clearmemory` | Wipes all LTM for current user |
 | `quit` | Saves session and exits |
@@ -312,24 +360,12 @@ python main.py
 ### Example — chat request
 
 ```bash
-curl -X POST http://localhost:8000/chat \
+curl -X POST https://projectsmith-ai.onrender.com/chat \
   -H "Content-Type: application/json" \
   -d '{
     "user_id": "austin",
     "thread_id": "abc-123",
     "message": "I want to build an app where farmers sell directly to customers"
-  }'
-```
-
-### Example — plan request
-
-```bash
-curl -X POST http://localhost:8000/plan \
-  -H "Content-Type: application/json" \
-  -d '{
-    "user_id": "austin",
-    "thread_id": "abc-123",
-    "message": "plan it"
   }'
 ```
 
@@ -361,7 +397,7 @@ src/
 │   ├── model.py               # LLMService wrapper
 │   └── prompts.py             # 6 specialized prompt templates
 └── memory/
-    ├── stm.py                 # PostgreSQL STM checkpointer
+    ├── stm.py                 # In-memory STM checkpointer
     ├── stm_manager.py         # Message trimming (500 tokens)
     ├── ltm.py                 # LTM table schema and CRUD
     └── ltm_manager.py         # Summarize, extract, load memories
@@ -385,8 +421,8 @@ src/
 | Agent framework | LangGraph |
 | API | FastAPI + Uvicorn |
 | Web UI | Streamlit |
-| Short-term memory | LangGraph PostgreSQL Checkpointer |
-| Long-term memory | PostgreSQL via psycopg |
+| Short-term memory | LangGraph MemorySaver |
+| Long-term memory | Supabase PostgreSQL |
 | Web search | DuckDuckGo (ddgs) |
 | PDF export | fpdf2 |
 | Containerization | Docker + Docker Compose |
@@ -416,8 +452,6 @@ git commit -m "feat: add your feature description"
 git push origin feature/your-feature-name
 ```
 
-Please keep pull requests focused on a single change and include a clear description of what was changed and why.
-
 ---
 
 ## License
@@ -427,5 +461,5 @@ MIT License. See [LICENSE](LICENSE) for details.
 ---
 
 <div align="center">
-  <sub>Built by Abdullah — AI Engineering Portfolio Project</sub>
+  <sub>Built by Abdullah — AI Engineering </sub>
 </div>
