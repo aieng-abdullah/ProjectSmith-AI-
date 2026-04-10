@@ -18,18 +18,18 @@ import httpx
 import json
 
 
-#  Keep-alive ping 
+# ─── Keep-alive ping ───────────────────────────────────────────────────────────
 
 async def keep_alive():
     """Pings the server every 10 minutes to prevent Render from sleeping."""
-    await asyncio.sleep(60)  # wait 1 min after startup before first ping
+    await asyncio.sleep(60)
     while True:
         try:
             async with httpx.AsyncClient() as client:
                 await client.get("https://projectsmith-ai.onrender.com/")
         except Exception:
             pass
-        await asyncio.sleep(600)  
+        await asyncio.sleep(600)
 
 
 @asynccontextmanager
@@ -38,7 +38,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-#  App init 
+# ─── App init ──────────────────────────────────────────────────────────────────
 
 app = FastAPI(
     title="ProjectSmith AI",
@@ -56,7 +56,7 @@ app.add_middleware(
 init_ltm()
 
 
-# Request models 
+# ─── Request models ────────────────────────────────────────────────────────────
 
 class ChatRequest(BaseModel):
     """Single conversational turn from the user."""
@@ -88,7 +88,7 @@ class SaveRequest(BaseModel):
     messages: List[MessageItem]
 
 
-#Helpers 
+# ─── Helpers ───────────────────────────────────────────────────────────────────
 
 def make_config(user_id: str, thread_id: str) -> dict:
     """Build LangGraph config with LTM context injected."""
@@ -102,7 +102,26 @@ def make_config(user_id: str, thread_id: str) -> dict:
 
 
 def base_state(user_input: str) -> dict:
-    """Build a clean initial agent state."""
+    """
+    For CHAT — ready_to_plan is False.
+    Router sends this to chat_node.
+    """
+    return {
+        "user_input":    user_input,
+        "messages":      [HumanMessage(content=user_input)],
+        "ready_to_plan": False,
+        "plan":          "",
+        "cost":          "",
+        "edges":         "",
+        "prd":           "",
+    }
+
+
+def plan_state(user_input: str) -> dict:
+    """
+    For PLANNING — ready_to_plan is True.
+    Router sends this directly to planner_node.
+    """
     return {
         "user_input":    user_input,
         "messages":      [HumanMessage(content=user_input)],
@@ -114,7 +133,7 @@ def base_state(user_input: str) -> dict:
     }
 
 
-# Endpoints 
+# ─── Endpoints ─────────────────────────────────────────────────────────────────
 
 @app.get("/")
 @app.head("/")
@@ -127,7 +146,7 @@ def root():
 def chat(req: ChatRequest):
     """
     Single conversational turn.
-    Loads user LTM, runs chat_node, returns the AI response.
+    Uses base_state so router goes to chat_node.
     """
     config = make_config(req.user_id, req.thread_id)
     try:
@@ -142,13 +161,15 @@ def chat(req: ChatRequest):
 def plan(req: PlanRequest):
     """
     Full 4-node planning pipeline.
+    Uses plan_state so router goes directly to planner_node.
+    Frontend passes full conversation as context.
     Returns plan, cost, edges, and prd in a single response.
     """
     config  = make_config(req.user_id, req.thread_id)
     context = req.conversation if req.conversation else req.message
 
     try:
-        result = graph.invoke(base_state(context), config=config)
+        result = graph.invoke(plan_state(context), config=config)
         return {
             "plan":  result.get("plan",  ""),
             "cost":  result.get("cost",  ""),
@@ -163,6 +184,7 @@ def plan(req: PlanRequest):
 def plan_stream(req: PlanRequest):
     """
     Streaming version of the planning pipeline.
+    Uses plan_state so router goes directly to planner_node.
     Yields node updates as NDJSON (newline-delimited JSON).
     Each line: {"node": "planner", "data": {...}}
     """
@@ -171,7 +193,7 @@ def plan_stream(req: PlanRequest):
 
     def generate():
         for event in graph.stream(
-            base_state(context),
+            plan_state(context),
             config=config,
             stream_mode="updates"
         ):

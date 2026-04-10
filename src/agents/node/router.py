@@ -6,21 +6,23 @@ PLAN_TRIGGERS = {
     "let's plan", "lets plan", "start planning"
 }
 
-MIN_MESSAGES = 4  # at least 2 user + 2 advisor exchanges before planning
+MIN_MESSAGES = 4
 
 
 def router_node(state: AgentState) -> str:
     user_input = state.get("user_input", "").strip().lower()
     messages   = state.get("messages", [])
 
-    # only trigger planning if exact trigger phrase AND enough conversation
-    is_trigger      = any(trigger == user_input for trigger in PLAN_TRIGGERS)
-    has_enough_context = len(messages) >= MIN_MESSAGES
-
-    if is_trigger and has_enough_context:
-        state["ready_to_plan"] = True
-
+    # check if already flagged as ready by the API (plan_state sets this to True)
     ready = state.get("ready_to_plan", False)
+
+    # also check trigger phrase for CLI usage
+    if not ready:
+        is_trigger         = any(trigger in user_input for trigger in PLAN_TRIGGERS)
+        has_enough_context = len(messages) >= MIN_MESSAGES
+        if is_trigger and has_enough_context:
+            ready = True
+            state["ready_to_plan"] = True
 
     if not ready:
         return "chat"

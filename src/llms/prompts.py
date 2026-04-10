@@ -79,12 +79,7 @@ IMPORTANT: The input you receive is a FULL CONVERSATION LOG between the founder
 and ProjectSmith. Read every message carefully before writing anything.
 Extract the specific idea, the problem being solved, the target user, and any
 constraints mentioned. Do not ask for more information. Do not invent details
-not in the conversation. The input you receive is a FULL CONVERSATION LOG. Read every message.
-Even if the conversation is short or vague, DO NOT ask for more information.
-Extract whatever you can from the conversation and generate the best plan possible.
-If details are missing, make reasonable assumptions and state them clearly.
-Never return an empty response.
-...rest of prompt unchanged...
+not in the conversation.
 
 YOUR JOB:
 Write a concrete, specific project plan using exactly these 3 sections:
