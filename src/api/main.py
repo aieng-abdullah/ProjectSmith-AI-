@@ -5,20 +5,58 @@ Connects the LangGraph agent (graph), short-term config, and long-term memory (L
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
 from agents.graph import graph
 from memory.ltm_manager import summarize_and_save, load_memories
 from memory.ltm import init_ltm, list_memories
 from langchain_core.messages import HumanMessage, AIMessage
+from contextlib import asynccontextmanager
+import asyncio
+import httpx
 import json
 
-app = FastAPI(title="ProjectSmith AI", version="1.0.0")
+
+#  Keep-alive ping 
+
+async def keep_alive():
+    """Pings the server every 10 minutes to prevent Render from sleeping."""
+    await asyncio.sleep(60)  # wait 1 min after startup before first ping
+    while True:
+        try:
+            async with httpx.AsyncClient() as client:
+                await client.get("https://projectsmith-ai.onrender.com/")
+        except Exception:
+            pass
+        await asyncio.sleep(600)  
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    asyncio.create_task(keep_alive())
+    yield
+
+
+#  App init 
+
+app = FastAPI(
+    title="ProjectSmith AI",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 init_ltm()
 
 
-# ─── Request models ────────────────────────────────────────────────────────────
+# Request models 
 
 class ChatRequest(BaseModel):
     """Single conversational turn from the user."""
@@ -35,8 +73,8 @@ class PlanRequest(BaseModel):
     """
     user_id:      str
     thread_id:    str
-    message:      str   # full conversation context
-    conversation: str = ""  # optional explicit conversation log
+    message:      str
+    conversation: str = ""
 
 
 class MessageItem(BaseModel):
@@ -50,7 +88,7 @@ class SaveRequest(BaseModel):
     messages: List[MessageItem]
 
 
-# ─── Helper ────────────────────────────────────────────────────────────────────
+#Helpers 
 
 def make_config(user_id: str, thread_id: str) -> dict:
     """Build LangGraph config with LTM context injected."""
@@ -76,9 +114,10 @@ def base_state(user_input: str) -> dict:
     }
 
 
-# ─── Endpoints ─────────────────────────────────────────────────────────────────
+# Endpoints 
 
 @app.get("/")
+@app.head("/")
 def root():
     """Health check — confirms the server is running."""
     return {"status": "ProjectSmith AI is running", "version": "1.0.0"}
@@ -92,7 +131,7 @@ def chat(req: ChatRequest):
     """
     config = make_config(req.user_id, req.thread_id)
     try:
-        result = graph.invoke(base_state(req.message), config=config)
+        result   = graph.invoke(base_state(req.message), config=config)
         response = result["messages"][-1].content if result.get("messages") else ""
         return {"response": response}
     except Exception as e:
@@ -103,15 +142,9 @@ def chat(req: ChatRequest):
 def plan(req: PlanRequest):
     """
     Full 4-node planning pipeline.
-
-    The frontend passes the FULL conversation as req.message so every node
-    (planner, cost, edge_case, doc) has complete context — not just 'plan it'.
-
     Returns plan, cost, edges, and prd in a single response.
     """
-    config = make_config(req.user_id, req.thread_id)
-
-    # use explicit conversation if provided, otherwise use message field
+    config  = make_config(req.user_id, req.thread_id)
     context = req.conversation if req.conversation else req.message
 
     try:
