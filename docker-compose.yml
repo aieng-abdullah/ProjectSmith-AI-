@@ -35,7 +35,7 @@ services:
       POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/projectsmith
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_KEY: ${SUPABASE_KEY}
-      MODEL_NAME: ${MODEL_NAME:-llama-3.1-8b-instant}
+      MODEL_NAME: ${MODEL_NAME:-openai/gpt-oss-20b}
       TEMPERATURE: ${TEMPERATURE:-0.7}
       PYTHONUNBUFFERED: 1
     ports:
@@ -65,7 +65,7 @@ services:
       POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/projectsmith
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_KEY: ${SUPABASE_KEY}
-      MODEL_NAME: ${MODEL_NAME:-llama-3.1-8b-instant}
+      MODEL_NAME: ${MODEL_NAME:-openai/gpt-oss-20b}
       TEMPERATURE: ${TEMPERATURE:-0.7}
       PYTHONUNBUFFERED: 1
     ports:

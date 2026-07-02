@@ -49,7 +49,7 @@ class TestSettings:
         settings = Settings.load()
 
         assert settings.GROQ_API_KEY == 'test-api-key'
-        assert settings.MODEL_NAME == 'llama-3.3-70b-versatile'
+        assert settings.MODEL_NAME == 'openai/gpt-oss-120b'
         assert settings.TEMPERATURE == 0.7
         assert settings.STREAMING is True
         assert settings.POSTGRES_URL == 'postgresql://postgres:postgres@localhost:5432/projectsmith'

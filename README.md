@@ -248,7 +248,7 @@ This project runs on a fully free stack across three platforms.
 ```
 GROQ_API_KEY   = your_groq_api_key
 POSTGRES_URL   = your_supabase_session_pooler_url
-MODEL_NAME     = llama-3.3-70b-versatile
+MODEL_NAME     = openai/gpt-oss-120b
 TEMPERATURE    = 0.7
 SUPABASE_URL   = https://your-project.supabase.co
 SUPABASE_KEY   = your_supabase_anon_key
@@ -269,7 +269,7 @@ SUPABASE_KEY   = your_supabase_anon_key
 GROQ_API_KEY = "your_groq_api_key"
 POSTGRES_URL = "your_supabase_session_pooler_url"
 FAST_API     = "https://your-render-backend.onrender.com"
-MODEL_NAME   = "llama-3.3-70b-versatile"
+MODEL_NAME   = "openai/gpt-oss-120b"
 SUPABASE_URL = "https://your-project.supabase.co"
 SUPABASE_KEY = "your_supabase_anon_key"
 TEMPERATURE  = "0.7"
@@ -306,7 +306,7 @@ GROQ_API_KEY=your_groq_api_key_here
 POSTGRES_URL=postgresql://postgres:postgres@localhost:5432/projectsmith
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your_supabase_anon_key
-MODEL_NAME=llama-3.3-70b-versatile
+MODEL_NAME=openai/gpt-oss-120b
 TEMPERATURE=0.7
 ```
 
