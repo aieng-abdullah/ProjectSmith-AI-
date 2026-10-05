@@ -22,9 +22,6 @@
 
 ---
 
-## 🚀 Live Link
-
-> **Try it now:** **[projectsmithai.streamlit.app](https://projectsmithai.streamlit.app)**
 
 
 ---
